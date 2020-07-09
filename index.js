@@ -273,7 +273,8 @@ app.post("/announcements", async (req, res) => {
         };
         let user = await verifyUser(req);
 
-        if (!user.announcementsallowed) {
+        //if (!user.announcementsallowed) {
+        if(false){
             throw ("Announcement not allowed by this user.");
         }
 
