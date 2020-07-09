@@ -8,6 +8,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="google-config.js"></script>
     <script src="config.js"></script>
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
@@ -15,12 +16,19 @@
     <a href="." onclick="signOut();">Sign out</a>
     <br>
     <br>
-    <input type="text" id="post">
-    <button id="submit">Submit</button>
-    <br><br>
-    <button id="get">Get</button>
+    <!--input type="text" id="post"-->
+    <div contenteditable="true" id="post" style="outline: none">hi</div>
+    <button id="submit-announce">Submit Announcement</button>
+    <button id="get-announce">Get Announcements</button>
+    <br>
+    <input type="text" id="forum">
+    <br>
+    <button id="create-forum">Create forum</button>
+    <button id="post-to-forum">Post to forum</button>
+    <button id="get-forum">Get Forum</button>
     <br>
     <div id="entries"></div>
+
 </body>
 
 </html>
