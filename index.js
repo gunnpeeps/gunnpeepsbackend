@@ -18,6 +18,8 @@ forumPosts.load();
 let forums = datastore.create("data/forum-info.db");
 forums.load();
 
+require("dotenv").config();
+
 // Google API
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client("760625180157-urki85i1c7u00coqe32g7hc372a5rk4t.apps.googleusercontent.com");
@@ -46,7 +48,8 @@ app.use(express.static("public"));
 app.use(express.json({
     limit: '1mb'
 }))
-app.listen(3000, () => console.log("listening at 3000"))
+const port = process.env.PORT || 3000;
+app.listen(port, () => console.log(`listening at ${port}`))
 
 async function formatDataQuery(docs) {
 
