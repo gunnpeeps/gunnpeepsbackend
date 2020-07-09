@@ -39,7 +39,7 @@ async function verify(token) {
     // If request specified a G Suite domain:
     // const domain = payload['hd'];
     payload.userid = userid;
-    console.log(payload.email);
+    //console.log(payload.email);
     return payload;
 }
 
@@ -194,29 +194,29 @@ function verifyHTML(str) {
 class DEBUG {
 
     start() {
-        console.log("DEBUG SESSION START");
+        //console.log("DEBUG SESSION START");
     }
 
     print(variable) {
         if (typeof variable == "object") {
             let keys = Object.keys(variable);
             for (let key of keys) {
-                console.log(key + ": " + variable[key]);
+                //console.log(key + ": " + variable[key]);
             }
         } else {
-            console.log(variable);
+            //console.log(variable);
         }
     }
 
     error(variable) {
-        console.log("DEBUG ERROR START");
+        //console.log("DEBUG ERROR START");
         this.print(variable);
-        console.log("DEBUG ERROR CLOSE");
+        //console.log("DEBUG ERROR CLOSE");
         this.close();
     }
 
     close() {
-        console.log("DEBUG SESSION END");
+        //console.log("DEBUG SESSION END");
     };
 }
 
@@ -418,7 +418,7 @@ app.post("/forums", async (req, res) => {
                 createdByUserID: user._id
             })
             returndata.status = "added"
-            console.log("Added forum");
+            //console.log("Added forum");
 
         } else {
             let docs = await forums.find({ name: req.body.forum });
