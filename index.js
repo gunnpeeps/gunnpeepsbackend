@@ -1,11 +1,11 @@
 let express = require("express");
 let app = express();
 
-let datastore = require("nedb");
-let posts = new datastore("data/posts.db");
-posts.loadDatabase();
-let users = new datastore("data/users.db");
-users.loadDatabase();
+let datastore = require("nedb-promises");
+let posts = datastore.create("data/posts.db");
+posts.load();
+let users = datastore.create("data/users.db");
+users.load();
 
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client("760625180157-urki85i1c7u00coqe32g7hc372a5rk4t.apps.googleusercontent.com");
@@ -34,6 +34,25 @@ app.use(express.json({
 }))
 app.listen(3000, () => console.log("listening at 3000"))
 
+app.get("/post", async (req,res) => {
+    console.log("DEBUG BEGIN");
+    console.log("Received get to /post.");
+    let docs = await posts.find({});
+    console.log(`docs: ${docs}`);
+
+    for (let doc of docs) {
+        let user = await users.find({email: doc.email});
+        user = user[0];
+        doc.name = user.name;
+        doc.imgurl = user.picture;
+        doc._id = undefined;
+    }
+
+    console.log(`new docs: ${docs}`);
+    res.send(docs);
+    console.log("DEBUG END");
+})
+
 app.post("/post", async (req,res) => {
     console.log("DEBUG BEGIN");
     console.log("Received post to /post: ");
@@ -55,16 +74,16 @@ app.post("/post", async (req,res) => {
     }
     console.log("User verified.");
 
-    users.find({email: userdata.email},(err,docs) => {
-        let query = docs[0];
-        posts.insert({
-            email: query.email,
-            post: req.body.post,
-            timestamp: Date.now()
-        });
-        console.log("Post added.");
-        console.log("DEBUG END");
-    })
+    let docs = await users.find({email: userdata.email})
+    let query = docs[0];
+    await posts.insert({
+        email: query.email,
+        post: req.body.post,
+        timestamp: Date.now()
+    });
+    console.log("Post added.");
+    console.log("DEBUG END");
+
 
 })
 
@@ -89,22 +108,20 @@ app.post("/users", async (req,res) => {
     }
     console.log("User verified.");
 
-    users.find({email: userdata.email}, (err,docs) => {
+    let docs = await users.find({email: userdata.email})
         
-        if(docs.length == 0){
-            users.insert(userdata, (err,docs) =>{
-                returndata.status = "user added and verified"
-                console.log("Added")
-            })
-        } else {
-            returndata.status = "user verified"
-        }
-        returndata.signedIn = true;
+    if(docs.length == 0){
+        await users.insert(userdata, (err,docs) =>{
+            returndata.status = "user added and verified"
+            console.log("Added")
+        })
+    } else {
+        returndata.status = "user verified"
+    }
+    returndata.signedIn = true;
 
-        res.send(returndata);
-        console.log("Returned")
-
-    })
+    res.send(returndata);
+    console.log("Returned")
 
     console.log("DEBUG END");
     
