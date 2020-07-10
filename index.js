@@ -39,7 +39,7 @@ async function verify(token) {
     // If request specified a G Suite domain:
     // const domain = payload['hd'];
     payload.userid = userid;
-    //console.log(payload.email);
+    console.log(payload);
     return payload;
 }
 
@@ -64,18 +64,14 @@ async function formatDataQuery(docs) {
 }
 
 function convertMarkdownToHTML(str){
-    console.log("BEFORE")
     let lines = str.split(/<\/div><div>|<div>|<\/div>/);
-    console.log("AFTER");
     if (lines[lines.length-1] === ''){
         lines.splice(lines.length-1,1);
     }
-    console.log("AFTER2");
     let olnum = 0;
     let ul = false;
 
     for(let i = 0; i < lines.length; i++){
-        console.log(lines);
         // Header
         if(lines[i][0] === "#"){
             let numHead = 0;
@@ -87,7 +83,6 @@ function convertMarkdownToHTML(str){
                 lines[i] = "<h" + numHead + ">" + lines[i] + "</h" + numHead + ">";
             }
         }
-        console.log("AFTER3");
 
         // OL
         let contOL = false;
@@ -110,8 +105,6 @@ function convertMarkdownToHTML(str){
             lines[i-1] = lines[i-1] + "</ol>"
         }
 
-        console.log("AFTER4");
-
         // UL
         let contUL = false;
         if(lines[i][0] === "*" && lines[i][1] === " "){
@@ -126,7 +119,6 @@ function convertMarkdownToHTML(str){
             lines[i-1] = lines[i-1] + "</ul>";
             ul = false;
         }
-        console.log("AFTER5");
 
         // bold
         let index = lines[i].indexOf("**");
@@ -138,7 +130,6 @@ function convertMarkdownToHTML(str){
             lines[i] = lines[i].slice(0, end) + "</strong>" + lines[i].slice(end + 2, lines[i].length);
             index = lines[i].indexOf("**");
         }
-        console.log("AFTER6");
 
         // italic
         index = lines[i].indexOf("*");
@@ -151,7 +142,6 @@ function convertMarkdownToHTML(str){
             index = lines[i].indexOf("*");
         }
 
-        console.log("AFTER3");
         // links
         index = lines[i].indexOf("](");
         while(index != -1){
@@ -182,9 +172,7 @@ function convertMarkdownToHTML(str){
             index = lines[i].indexOf("](");
         }
         
-        console.log("AFTER8");
     }
-    console.log("FINAL");
     return lines.join('<br>');
 }
 
@@ -204,29 +192,29 @@ function verifyHTML(str) {
 class DEBUG {
 
     start() {
-        console.log("DEBUG SESSION START");
+        //console.log("DEBUG SESSION START");
     }
 
     print(variable) {
         if (typeof variable == "object") {
             let keys = Object.keys(variable);
             for (let key of keys) {
-                console.log(key + ": " + variable[key]);
+                //console.log(key + ": " + variable[key]);
             }
         } else {
-            console.log(variable);
+            //console.log(variable);
         }
     }
 
     error(variable) {
-        console.log("DEBUG ERROR START");
-        console.log(variable);
-        console.log("DEBUG ERROR CLOSE");
+        //console.log("DEBUG ERROR START");
+        this.print(variable);
+        //console.log("DEBUG ERROR CLOSE");
         this.close();
     }
 
     close() {
-        console.log("DEBUG SESSION END");
+        //console.log("DEBUG SESSION END");
     };
 }
 
@@ -238,24 +226,19 @@ async function verifyUser(req) {
     try {
 
         let userdata = {};
-        console.log("Test1");
         try {
             userdata = await verify(req.body.token);
         } catch (err) {
             throw err;
         }
-        console.log("Test2");
 
         let docs = await users.find({ email: userdata.email })
         user = docs[0];
-        console.log("Test3");
 
     } catch (error) {
-        console.log(error);
         throw error;
     }
 
-    console.log("Test4");
     return user;
 
 }
@@ -351,7 +334,8 @@ app.post("/users", async (req, res) => {
         if (docs.length == 0) {
             let insertion = userdata;
             insertion.announcementsallowed = false;
-            insertion.createforumsallowed = false;
+            insertion.createforumsallowed = true;
+            insertion.admin = false;
             await users.insert(insertion, (err, docs) => {
                 returndata.status = "user added and verified"
                 D.print("Added")
@@ -382,15 +366,8 @@ app.post("/forums", async (req, res) => {
         let returndata = {
             success: true
         };
-        
-        let allOK = verifyHTML(req.body.post);
-
-        if (!allOK) {
-            throw ("Malicious content detected");
-        }
 
         let user = await verifyUser(req);
-        console.log(user);
 
         if (req.body.create) {
             if (!user.createforumsallowed) {
@@ -434,6 +411,14 @@ app.post("/forums", async (req, res) => {
                 req.body.write = writeList;
             }
 
+            console.log({
+                name: req.body.forum,
+                read: req.body.read,
+                write: req.body.write,
+                created: Date.now(),
+                createdByUserID: user._id
+            });
+
             forums.insert({
                 name: req.body.forum,
                 read: req.body.read,
@@ -442,10 +427,8 @@ app.post("/forums", async (req, res) => {
                 createdByUserID: user._id
             })
             returndata.status = "added"
-            //console.log("Added forum");
 
         } else {
-            console.log("BEFORE");
             let docs = await forums.find({ name: req.body.forum });
             if (docs.length == 0) {
                 throw ("Forum doesn't exist.");
@@ -455,21 +438,14 @@ app.post("/forums", async (req, res) => {
                 throw ("User doesn't have permissions to write in this forum");
             }
 
-            console.log("BEFORE");
             let allOK = verifyHTML(req.body.post);
-
             if (!allOK) {
                 throw ("Malicious content detected");
             }
 
-            console.log("AFTER");
             let mdPost = req.body.post;
-            console.log("AFTER");
-            console.log(mdPost);
             let actualPost = convertMarkdownToHTML(mdPost);
-            console.log("AFTER");
             allOK = allOK && verifyHTML(actualPost);
-            console.log("AFTER");
 
             if (!allOK) {
                 throw ("Malicious content detected");
@@ -532,4 +508,36 @@ app.post("/forums-get", async (req, res) => {
             success: false
         });
     }
+})
+
+app.post("/admin", async (req,res) => {
+    try {
+
+        D.start();
+        let user = await verifyUser(req);
+
+        if(!user.admin){
+            throw "user not admin";
+        }
+
+        let db = req.body.db;
+       /* let change = req.body.change;
+        let changeTo = req.body.changeTo;*/
+
+        switch(db){
+            case "user":
+                let users = await users.find({});
+                res.send(users);
+                break;
+        }
+    
+    } catch (err) {
+        D.error(err);
+        res.send({
+            error: err,
+            status: "error",
+            success: false
+        });
+    }
+
 })
