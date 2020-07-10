@@ -39,7 +39,7 @@ async function verify(token) {
     // If request specified a G Suite domain:
     // const domain = payload['hd'];
     payload.userid = userid;
-    console.log(payload.email);
+    //console.log(payload.email);
     return payload;
 }
 
@@ -64,7 +64,7 @@ async function formatDataQuery(docs) {
 }
 
 function convertMarkdownToHTML(str){
-    let lines = str.split(/<\/div><div>|<div>|<\/div>/);
+    let lines = str.split(/<br>|<\/div><div>|<div>|<\/div>/);
     if (lines[lines.length-1] === ''){
         lines.splice(lines.length-1,1);
     }
@@ -74,6 +74,9 @@ function convertMarkdownToHTML(str){
     let image = false;
 
     for(let i = 0; i < lines.length; i++){
+
+        let p = true;
+
         // Header
         if(lines[i][0] === "#"){
             let numHead = 0;
@@ -84,6 +87,7 @@ function convertMarkdownToHTML(str){
             if(numHead < 7){
                 lines[i] = "<h" + numHead + ">" + lines[i] + "</h" + numHead + ">";
             }
+            p = false;
         }
 
         // OL
@@ -96,6 +100,7 @@ function convertMarkdownToHTML(str){
             if(olnum === currInt - 1){
                 lines[i] = "<li>" + lines[i].slice(3,lines[i].length) + "</li>";
                 contOL = true;
+                p = false;
                 if (olnum === 0) {
                     lines[i] = "<ol>" + lines[i];
                 }
@@ -111,6 +116,7 @@ function convertMarkdownToHTML(str){
         let contUL = false;
         if(lines[i][0] === "*" && lines[i][1] === " "){
             contUL = true;
+            p = false;
             lines[i] = "<li>" + lines[i].slice(2, lines[i].length) + "</li>";
             if(!ul){
                 lines[i] = "<ul>" + lines[i];
@@ -123,9 +129,10 @@ function convertMarkdownToHTML(str){
         }
 
         // Img
-        if(lines[i][0] === "-" && lines[i][1] === "-"){
+        if(lines[i][0] === "-" && lines[i][1] === "-" && !image){
             image = true;
             lines[i] = `<img src=${lines[i].slice(2,lines[i].length)} height=200>`;
+            p = false;
         }
 
         // bold
@@ -179,15 +186,19 @@ function convertMarkdownToHTML(str){
             lines[i] = lines[i].slice(0, firstIndex) + `<a href=${link}>${content}</a>` + lines[i].slice(lastIndex + 1, lines[i].length);
             index = lines[i].indexOf("](");
         }
+
+        if(p){
+            lines[i] = "<p>" + lines[i] + "</p>";
+        }
         
     }
-    return lines.join('<br>');
+    return lines.join('');
 }
 
 function verifyHTML(str) {
     let allOK = true;
 
-    if(str.length > 500){
+    if(str.length > 1000){
         allOK = false;
     }
 
@@ -378,6 +389,8 @@ app.post("/forums", async (req, res) => {
         };
 
         let user = await verifyUser(req);
+        
+        console.log(user.name);
 
         if (req.body.create) {
             if (!user.createforumsallowed) {
