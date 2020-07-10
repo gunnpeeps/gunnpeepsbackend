@@ -28,7 +28,7 @@ $(() => {
 
 
             $("#entries").empty();
-            returned.sort((a,b) => {return a.timestamp - b.timestamp})
+            returned.sort((a,b) => {return b.timestamp - a.timestamp})
             console.log(returned);
 
             for(let post of returned){
@@ -109,7 +109,7 @@ $(() => {
             let returned = await fetch("/forums-get", options);
             returned = await returned.json();
             $("#entries").empty();
-            returned.sort((a, b) => { return a.timestamp - b.timestamp })
+            returned.sort((a, b) => { return b.timestamp - a.timestamp })
             console.log(returned);
 
             for (let post of returned) {

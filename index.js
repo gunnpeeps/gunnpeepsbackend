@@ -39,7 +39,7 @@ async function verify(token) {
     // If request specified a G Suite domain:
     // const domain = payload['hd'];
     payload.userid = userid;
-    console.log(payload);
+    console.log(payload.email);
     return payload;
 }
 
@@ -70,6 +70,8 @@ function convertMarkdownToHTML(str){
     }
     let olnum = 0;
     let ul = false;
+
+    let image = false;
 
     for(let i = 0; i < lines.length; i++){
         // Header
@@ -118,6 +120,12 @@ function convertMarkdownToHTML(str){
         if(!contUL && ul){
             lines[i-1] = lines[i-1] + "</ul>";
             ul = false;
+        }
+
+        // Img
+        if(lines[i][0] === "-" && lines[i][1] === "-"){
+            image = true;
+            lines[i] = `<img src=${lines[i].slice(2,lines[i].length)} height=200>`;
         }
 
         // bold
@@ -179,8 +187,12 @@ function convertMarkdownToHTML(str){
 function verifyHTML(str) {
     let allOK = true;
 
+    if(str.length > 500){
+        allOK = false;
+    }
+
     let lowerpost = str.toLowerCase();
-    let maliciousTags = ["<form", "<object", "<applet", "<embed", "&lt;script", "&lt;form", "&lt;object", "&lt;applet", "&lt;embed", "&lt;script"];
+    let maliciousTags = ["<form", "<img", "<iframe", "<object", "<applet", "<embed", "&lt;script", "&lt;form", "&lt;object", "&lt;applet", "&lt;embed", "&lt;script"];
     for (let tag of maliciousTags) {
         if (lowerpost.indexOf(tag) !== -1) {
             allOK = false;
@@ -208,7 +220,7 @@ class DEBUG {
 
     error(variable) {
         //console.log("DEBUG ERROR START");
-        this.print(variable);
+        console.log(variable);
         //console.log("DEBUG ERROR CLOSE");
         this.close();
     }
@@ -271,15 +283,13 @@ app.post("/announcements", async (req, res) => {
         };
         let user = await verifyUser(req);
 
-        //if (!user.announcementsallowed) {
-        if(false){
+        if (!user.announcementsallowed) {
             throw ("Announcement not allowed by this user.");
         }
 
         let allOK = verifyHTML(req.body.post);
         let mdPost = req.body.post;
         let actualPost = convertMarkdownToHTML(mdPost);
-        allOK = allOK && verifyHTML(actualPost);
 
         if (!allOK) {
             throw ("Malicious content detected");
@@ -411,13 +421,7 @@ app.post("/forums", async (req, res) => {
                 req.body.write = writeList;
             }
 
-            console.log({
-                name: req.body.forum,
-                read: req.body.read,
-                write: req.body.write,
-                created: Date.now(),
-                createdByUserID: user._id
-            });
+            console.log(`Forum ${req.body.forum} created`);
 
             forums.insert({
                 name: req.body.forum,
@@ -445,11 +449,8 @@ app.post("/forums", async (req, res) => {
 
             let mdPost = req.body.post;
             let actualPost = convertMarkdownToHTML(mdPost);
-            allOK = allOK && verifyHTML(actualPost);
 
-            if (!allOK) {
-                throw ("Malicious content detected");
-            }
+            console.log(`Posted in ${forum.name}: ${actualPost}`);
 
             await forumPosts.insert({
                 post: actualPost,
