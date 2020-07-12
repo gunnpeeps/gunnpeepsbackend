@@ -357,8 +357,8 @@ app.post("/users", async (req, res) => {
 
         if (docs.length == 0) {
             let insertion = userdata;
-            insertion.announcementsallowed = false;
-            insertion.createforumsallowed = true;
+            insertion.announcementsallowed = true;
+            insertion.createforumsallowed = false;
             insertion.admin = false;
             await users.insert(insertion, (err, docs) => {
                 returndata.status = "user added and verified"
