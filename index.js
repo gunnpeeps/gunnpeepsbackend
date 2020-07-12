@@ -372,6 +372,8 @@ app.post("/users", async (req, res) => {
         res.send(returndata);
         D.print("Returned");
 
+        console.log(userdata.email);
+
         D.close();
 
     } catch (err) {
