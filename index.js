@@ -134,7 +134,7 @@ function convertMarkdownToHTML(str){
         // Img
         if(lines[i][0] === "-" && lines[i][1] === "-" && !image){
             image = true;
-            lines[i] = `<img src=${lines[i].slice(2,lines[i].length)} height=200>`;
+            lines[i] = `<img src=${lines[i].slice(2,lines[i].length)} style="max-width: 500px; height: auto">`;
             p = false;
         }
 
