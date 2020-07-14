@@ -23,8 +23,6 @@ var transporter = nodemailer.createTransport({
 });
 
 
-
-
 /* Nedb Promises */
 let datastore = require("nedb-promises");
 
@@ -42,14 +40,14 @@ require("dotenv").config();
 
 // Google API
 const { OAuth2Client } = require('google-auth-library');
-const client = new OAuth2Client("760625180157-urki85i1c7u00coqe32g7hc372a5rk4t.apps.googleusercontent.com");
+const client = new OAuth2Client("89861449366-vs15a690emufecfurb11275vb9e31h63.apps.googleusercontent.com");
 
 // Google API verify function
 async function verify(token) {
 
     const ticket = await client.verifyIdToken({
         idToken: token,
-        audience: "760625180157-urki85i1c7u00coqe32g7hc372a5rk4t.apps.googleusercontent.com",  // Specify the CLIENT_ID of the app that accesses the backend
+        audience: "89861449366-vs15a690emufecfurb11275vb9e31h63.apps.googleusercontent.com",  // Specify the CLIENT_ID of the app that accesses the backend
         // Or, if multiple clients access the backend:
         //[CLIENT_ID_1, CLIENT_ID_2, CLIENT_ID_3]
     });
