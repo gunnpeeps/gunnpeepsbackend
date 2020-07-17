@@ -62,6 +62,7 @@ $(() => {
                 body: JSON.stringify({
                     token: globals.id_token,
                     post: $("#post").html(),
+                    signingwithgoogle: true,
                     status: "sent"
                 })
             }

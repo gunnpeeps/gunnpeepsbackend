@@ -22,7 +22,6 @@ var transporter = nodemailer.createTransport({
     }
 });
 
-
 /* Nedb Promises */
 let datastore = require("nedb-promises");
 
@@ -74,8 +73,10 @@ async function formatDataQuery(docs) {
     for (let doc of docs) {
         let user = await users.find({ _id: doc.userID });
         user = user[0];
-        doc.name = user.name;
-        doc.imgurl = user.picture;
+        if(user){
+            doc.name = user.name;
+            doc.imgurl = user.picture;
+        }
     }
     return docs;
 
@@ -267,14 +268,28 @@ async function verifyUser(req) {
     try {
 
         let userdata = {};
-        try {
-            userdata = await verify(req.body.token);
-        } catch (err) {
-            throw err;
+
+        if(req.body.signingwithgoogle){
+            try {
+                userdata = await verify(req.body.token);
+            } catch (err) {
+                throw err;
+            }
+
+            let docs = await users.find({ email: userdata.email })
+            if(docs.length == 0){
+                throw "USER NOT FOUND";
+            }
+            user = docs[0];
+        } else {
+            let docs = await users.find({ ssid: req.body.ssid});
+            if(docs.length == 0){
+                throw "WRONG SESSION ID";
+            }
+            user = docs[0];
         }
 
-        let docs = await users.find({ email: userdata.email })
-        user = docs[0];
+        
 
     } catch (error) {
         throw error;
@@ -351,7 +366,149 @@ app.post("/announcements", async (req, res) => {
     }
 })
 
-app.post("/users", async (req, res) => {
+let randomStr = function(strLen){
+    let token = crypto.randomBytes(strLen);
+    token = token.toString('base64').replace(/\//g, '_').replace(/\+/g, '-');
+    return token;
+}
+
+let signIn = async function(id){
+    let ssid = randomStr(32);
+    let user = await users.find({_id: id});
+    if(user.length == 0){
+        throw "USER NOT FOUND";
+    }
+    await users.update({_id: id},  {$set: {ssid: ssid}}, {});
+    await users.persistence.compactDatafile();
+    return {
+        ssid: ssid,
+        user: user,
+        success: true,
+        signedIn: true,
+        status: "SIGNED IN"
+    }
+}
+
+app.post("/user-create", async (req,res) => {
+    try {
+        let returndata = {
+            success: true
+        };
+
+        if(req.body.signingwithgoogle){
+            try {
+                userdata = await verify(req.body.token);
+            } catch (err) {
+                throw err;
+            }
+
+            let docs = await users.find({ email: userdata.email })
+            if (docs.length > 0) {
+                throw "EMAIL TAKEN";
+            }
+            docs = await users.find({
+                atname: req.body.atname
+            })
+            if (docs.length > 0) {
+                throw "USERNAME TAKEN";
+            }
+            await users.insert({
+                name: req.body.fn + " " + req.body.ln,
+                picture: userdata.picture,
+                given_name: req.body.fn,
+                family_name: req.body.ln,
+                announcementsallowed: true,
+                createforumsallowed: false,
+                admin: false,
+                email: userdata.email,
+                atname: req.body.atname,
+                password: req.body.password
+            });
+            returndata.status = "ADDED";
+        } else {
+            let docs = await users.find({ email: req.body.email })
+            if (docs.length > 0) {
+                throw "EMAIL TAKEN";
+            }
+            docs = await users.find({
+                atname: userdata.atname
+            })
+            if (docs.length > 0) {
+                throw "USERNAME TAKEN";
+            }
+            await users.insert({
+                name: req.body.fn + " " + req.body.ln,
+                picture: "https://lh3.googleusercontent.com/-o1_zE5csJ7Y/Xw52dJlTjYI/AAAAAAAAR9A/WkogcoTxaTIS1crjWTRbG-tptm1KR8pNQCK8BGAsYHg/s0/2020-07-14.jpgs",
+                given_name: req.body.fn,
+                family_name: req.body.ln,
+                announcementsallowed: true,
+                createforumsallowed: false,
+                admin: false,
+                email: req.body.email,
+                atname: req.body.atname,
+                password: req.body.password
+            });
+            returndata.status = "ADDED";
+        }
+        res.send(returndata);
+    } catch (err) {
+        D.error(err);
+        res.send({
+            error: err,
+            status: "error",
+            success: false
+        });
+    }
+});
+
+app.post("/user-sign-in", async (req,res) => {
+    try {
+        if (req.body.signingwithgoogle) {
+            try {
+                userdata = await verify(req.body.token);
+            } catch (err) {
+                throw err;
+            }
+
+            let docs = await users.find({
+                email: userdata.email
+            })
+            if (docs.length > 0) {
+                let returndata = await signIn(docs[0]._id);
+                res.send(returndata);
+            } else {
+                throw "USER NOT FOUND";
+            }
+            
+        } else {
+            if(req.body.username){
+                let docs = await users.find({
+                    username: req.body.username
+                })
+                if(docs.length == 0){
+                    throw "NOT FOUND";
+                }
+
+            } else {
+                let docs = await users.find({
+                    email: req.body.email
+                })
+                if (docs.length == 0) {
+                    throw "NOT FOUND";
+                }
+            }
+        }
+    } catch (err) {
+        D.error(err);
+        res.send({
+            error: err,
+            status: "ERROR",
+            success: false
+        });
+    }
+});
+
+/*app.post("/users", async (req, res) => {
     try {
         D.start();
         D.print("Received post to /users")
@@ -379,6 +536,8 @@ app.post("/users", async (req, res) => {
                 returndata.status = "user added and verified"
                 D.print("Added")
             })
+            returndata.success = false;
+            returndata.status = "user not found";
         } else {
             returndata.status = "user verified"
         }
@@ -399,7 +558,7 @@ app.post("/users", async (req, res) => {
             success: false
         });
     }
-})
+})*/
 
 app.post("/forums", async (req, res) => {
     try {
@@ -414,20 +573,20 @@ app.post("/forums", async (req, res) => {
 
         if (req.body.create) {
             if (!user.createforumsallowed) {
-                throw ("Creating forums not allowed by this user.");
+                throw ("CREATING FORUMS NOT ALLOWED BY THIS USER");
             }
             let docs = await forums.find({ name: req.body.forum });
             if (docs.length != 0) {
-                throw ("Forum already exists.");
+                throw ("FORUM ALREADY EXISTS.");
             }
 
 
             if (!req.body.read || (req.body.read != "ALL" && (typeof req.body.read != "Object" || !req.body.read.isArray()))) {
-                throw ("Invalid read permissions");
+                throw ("INVALID READ PERMISSIONS");
             }
 
             if (!req.body.write || (req.body.write != "ALL" && (typeof req.body.write != "Object" || !req.body.write.isArray()))) {
-                throw ("Invalid write permissions");
+                throw ("INVALID WRITE PERMISSIONS");
             }
 
             let readList = [];
@@ -468,16 +627,16 @@ app.post("/forums", async (req, res) => {
         } else {
             let docs = await forums.find({ name: req.body.forum });
             if (docs.length == 0) {
-                throw ("Forum doesn't exist.");
+                throw ("FORUM DOESN'T EXIST");
             }
             let forum = docs[0];
             if (forum.write != "ALL" && forum.write.indexOf(user._id) == -1) {
-                throw ("User doesn't have permissions to write in this forum");
+                throw ("USER DOESN'T HAVE PERMISSIONS TO WRITE IN THIS FORUM");
             }
 
             let allOK = verifyHTML(req.body.post);
             if (!allOK) {
-                throw ("Malicious content detected");
+                throw ("MALICIOUS CONTENT DETECTED");
             }
 
             let mdPost = req.body.post;
@@ -492,8 +651,8 @@ app.post("/forums", async (req, res) => {
                 timestamp: Date.now(),
                 userID: user._id
             })
-            returndata.status = "Added post"
-            D.print("Post added")
+            returndata.status = "ADDED POST"
+            D.print("POST ADDED")
 
         }
         res.send(returndata);
@@ -502,7 +661,7 @@ app.post("/forums", async (req, res) => {
         D.error(err);
         res.send({
             error: err,
-            status: "error",
+            status: "ERROR",
             success: false
         });
     }
@@ -516,16 +675,16 @@ app.post("/forums-get", async (req, res) => {
         let user = await verifyUser(req);
 
         if (typeof req.body.forum !== "string") {
-            throw("Invalid forum name");
+            throw("INVALID FORUM NAME");
         }
 
         let docs = await forums.find({ name: req.body.forum });
         if (docs.length == 0) {
-            throw ("Forum doesn't exist.");
+            throw ("FORUM DOESN'T EXIST");
         }
         let forum = docs[0];
         if (forum.read != "ALL" && forum.read.indexOf(user.email) == -1) {
-            throw("User doesn't have permissions to read in this forum");
+            throw("USER DOESN'T HAVE PERMISSIONS TO READ IN THIS FORUM");
         }
 
         docs = await forumPosts.find({ forumID: forum._id })
@@ -551,7 +710,7 @@ app.post("/admin", async (req,res) => {
         let user = await verifyUser(req);
 
         if(!user.admin){
-            throw "user not admin";
+            throw "USER NOT ADMIN";
         }
 
         let db = req.body.db;

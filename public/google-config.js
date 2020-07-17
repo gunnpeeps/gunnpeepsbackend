@@ -31,11 +31,12 @@ async function onSignIn(googleUser) {
         },
         body: JSON.stringify({
             token: id_token,
-            status: "sent"
+            status: "sent",
+            signingwithgoogle: true
         })
     }
 
-    let returned = await fetch("/users", options);
+    let returned = await fetch("/user-sign-in", options);
     returned = await returned.json();
     console.log(returned);
     if(returned.signedIn){
@@ -44,5 +45,7 @@ async function onSignIn(googleUser) {
         globals.name = profile.getName();
         globals.email = profile.getEmail();
         globals.pfp = profile.getImageUrl();
+    } else {
+        window.location.href = "signup.html";
     }
 }

@@ -1,0 +1,24 @@
+<html lang="en">
+
+<head>
+    <meta name="google-signin-scope" content="profile email">
+    <meta name="google-signin-client_id"
+        content="89861449366-vs15a690emufecfurb11275vb9e31h63.apps.googleusercontent.com">
+    <script src="https://apis.google.com/js/platform.js" async defer></script>
+    <!-- JQuery -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="usersignup.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="g-signin2" data-onsuccess="onSignIn" data-theme="dark"></div>
+    <a href="." onclick="signOut();">Sign out</a>
+    <br>
+    <br>
+    <input type="text" id="atname">
+    <input type="text" id="password">
+    <button id="submit">submit</button>
+</body>
+
+</html>
